@@ -34,14 +34,17 @@ def init():
     old_download = False
 
 RST = '\033[0m'
-ORG = '\033[38;5;208m'
-CYN = '\033[96m'
-AR = f'{ORG}▶{RST}'
+ORANGE = '\033[38;5;208m'
+CYAN = "\033[36m"
+GREEN = "\033[38;5;46m"
+AR = f'{ORANGE}▶{RST}'
+TITLE = f'{CYAN}CivitAI Browser++{RST}{ORANGE}:{RST}'
+DEBUG = f'[{GREEN}DEBUG{RST}]'
 
 _print = print
 def print(print_message):
-    _print(f'{AR} {CYN}CivitAI Browser++{RST}: {print_message}')
+    _print(f'{AR} {TITLE} {print_message}')
 
 def debug_print(print_message):
     if do_debug_print:
-        _print(f'\033[96m[DEBUG] CivitAI Browser+\033[0m: {print_message}')
+        _print(f'{DEBUG} {TITLE} {print_message}')
