@@ -1012,7 +1012,7 @@ def on_ui_tabs():
         )
 
     if ver_bool:
-        tab_name = "CivitAI Browser+"
+        tab_name = "CivitAI Browser++"
     else:
         tab_name = "Civitai Browser+"
     
@@ -1033,10 +1033,10 @@ def on_ui_settings():
         browser = ("civitai_browser", "Browser")
         download = ("civitai_browser_download", "Downloads")
         from modules.options import categories
-        categories.register_category("civitai_browser_plus", "CivitAI Browser+")
-        cat_id = "civitai_browser_plus"
+        categories.register_category("civitai_browser_plus_plus", "CivitAI Browser++")
+        cat_id = "civitai_browser_plus_plus"
     else:
-        section = ("civitai_browser_plus", "CivitAI Browser+")
+        section = ("civitai_browser_plus_plus", "CivitAI Browser++")
         browser = download = section
     if not (hasattr(shared.OptionInfo, "info") and callable(getattr(shared.OptionInfo, "info"))):
         def info(self, info):
