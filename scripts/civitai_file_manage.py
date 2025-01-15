@@ -20,7 +20,7 @@ import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 import scripts.civitai_download as _download
-from scripts.EncryptionImg import EncryptedImage
+from scripts.encryption.img import EncryptedImage
 
 try:
     from send2trash import send2trash
