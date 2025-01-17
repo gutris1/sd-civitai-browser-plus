@@ -1,5 +1,7 @@
 from modules.shared import opts
+
 do_debug_print = getattr(opts, "civitai_debug_prints", False)
+
 def init():
     import warnings, os, json
     from urllib3.exceptions import InsecureRequestWarning
@@ -38,12 +40,13 @@ ORANGE = '\033[38;5;208m'
 CYAN = "\033[36m"
 GREEN = "\033[38;5;46m"
 AR = f'{ORANGE}▶{RST}'
-TITLE = f'{CYAN}CivitAI Browser++{RST}{ORANGE}:{RST}'
+TITLE = f'{CYAN}CivitAI Browser++{RST}:'
 DEBUG = f'[{GREEN}DEBUG{RST}]'
 
 _print = print
-def print(print_message):
-    _print(f'{AR} {TITLE} {print_message}')
+
+def print(msg):
+    _print(msg if "Image Encryption:" in msg else f'{AR} {TITLE} {msg}')
 
 def debug_print(print_message):
     if do_debug_print:
