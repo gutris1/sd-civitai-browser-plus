@@ -7,11 +7,19 @@ import re
 import subprocess
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
-from scripts.civitai_global import print, debug_print
+from scripts.civitai_global import print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
 import scripts.civitai_api as _api
+from scripts.imageEncryption import image_encryption_started, password
+
+RST = '\033[0m'
+ORG = '\033[38;5;208m'
+AR = f'{ORG}▶{RST}'
+BLUE = '\033[38;5;39m'
+RED = '\033[38;5;196m'
+TITLE = 'Image Encryption:'
 
 def git_tag():
     try:
@@ -20,7 +28,7 @@ def git_tag():
         return None
 
 try:
-    import modules_forge
+    import modules_forge  # type: ignore
     forge = True
     ver_bool = True
 except ImportError:
@@ -1247,7 +1255,7 @@ def on_ui_settings():
             **({'category_id': cat_id} if ver_bool else {})
         )
     )
-    
+
     shared.opts.add_option(
         "image_location",
         shared.OptionInfo(
@@ -1267,7 +1275,7 @@ def on_ui_settings():
             **({'category_id': cat_id} if ver_bool else {})
         ).info("Will append any content type and sub folders to the custom path.")
     )
-    
+
     shared.opts.add_option(
         "save_to_custom",
         shared.OptionInfo(
@@ -1277,7 +1285,7 @@ def on_ui_settings():
             **({'category_id': cat_id} if ver_bool else {})
         )
     )
-    
+
     shared.opts.add_option(
         "custom_civitai_proxy",
         shared.OptionInfo(
@@ -1289,7 +1297,7 @@ def on_ui_settings():
             **({'category_id': cat_id} if ver_bool else {})
         ).info("Only works with proxies that support HTTPS, turn Aria2 off for proxy downloads")
     )
-        
+
     shared.opts.add_option(
         "cabundle_path_proxy",
         shared.OptionInfo(
@@ -1301,7 +1309,7 @@ def on_ui_settings():
             **({'category_id': cat_id} if ver_bool else {})
         ).info("Specify custom CA bundle for SSL certificate checks if required")
     )
-            
+
     shared.opts.add_option(
         "disable_sll_proxy",
         shared.OptionInfo(
@@ -1351,8 +1359,20 @@ def on_ui_settings():
         if folder == "LORA, LoCon, DoRA":
             folder = "LORA"
             setting_name = "LORA_LoCon"
-        
+
         shared.opts.add_option(f"{setting_name}_default_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=download, **({'category_id': cat_id} if ver_bool else {})))
-    
-script_callbacks.on_ui_tabs(on_ui_tabs)
-script_callbacks.on_ui_settings(on_ui_settings)
+
+if password == '':
+    msg = f'{AR} {TITLE} {RED}Disabled{RST}, --encrypt-pass value is empty.'
+elif not password:
+    msg = f'{AR} {TITLE} {RED}Disabled{RST}, Missing --encrypt-pass command line argument.'
+else:
+    msg = f'{AR} {TITLE} {BLUE}Enabled{RST}' \
+          f'\n{AR} {TITLE} Check the release page for decrypting images in local Windows ' \
+          f'https://github.com/gutris1/sd-encrypt-image'
+
+    script_callbacks.on_app_started(image_encryption_started)
+    script_callbacks.on_ui_tabs(on_ui_tabs)
+    script_callbacks.on_ui_settings(on_ui_settings)
+
+print(msg)
