@@ -20,7 +20,7 @@ import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 import scripts.civitai_download as _download
-from scripts.encryption.img import EncryptedImage
+import scripts.imageEncryption as iE
 
 try:
     from send2trash import send2trash
@@ -201,7 +201,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                                     img = Image.open(image_path)
                                     imginfo = img.info or {}
                                     if not all(k in imginfo for k in imgkeys):
-                                        EncryptedImage.from_image(img).save(image_path)
+                                        iE.EncryptedImage.from_image(img).save(image_path)
                                         print(f"Encrypted preview saved at \"{image_path}\"")
                                 except Exception as e:
                                     print(f"Error : {image_path} : {e}")
