@@ -148,14 +148,6 @@ class EncryptedImage(PILImage.Image):
             super().save(fp, format=format, **params)
             return
 
-        pnginfo = params.get('pnginfo', PngImagePlugin.PngInfo())
-        if not pnginfo:
-            pnginfo = PngImagePlugin.PngInfo()
-
-        for key, value in (self.info or {}).items():
-            if value:
-                pnginfo.add_text(key, str(value))
-
         back_img = PILImage.new('RGBA', self.size)
         back_img.paste(self)
 
@@ -168,6 +160,15 @@ class EncryptedImage(PILImage.Image):
                 fn = Path(filename)
                 os.system(f'rm -f {fn}')
                 return
+
+        self.format = PngImagePlugin.PngImageFile.format
+        pnginfo = params.get('pnginfo', PngImagePlugin.PngInfo())
+        if not pnginfo:
+            pnginfo = PngImagePlugin.PngInfo()
+            for key in (self.info or {}).keys():
+                if self.info[key]:
+                    print(f'{key}:{str(self.info[key])}')
+                    pnginfo.add_text(key,str(self.info[key]))
 
         pnginfo.add_text('Encrypt', 'pixel_shuffle_3')
         pnginfo.add_text('EncryptPwdSha', get_sha256(f'{get_sha256(password)}Encrypt'))
