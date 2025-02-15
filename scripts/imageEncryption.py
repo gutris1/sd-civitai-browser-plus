@@ -356,6 +356,11 @@ def hook_http_request(app: FastAPI):
                 return next((sub.split('=')[1] for sub in query_string.split('&') if sub.startswith(param)), '')
             return None
 
+        if endpoint.startswith('/sd-hub-gallery/image'):
+            img_path = endpoint[len('/sd-hub-gallery/image'):]
+            if img_path:
+                endpoint = f'/file={img_path}'
+
         path = process_query(endpoint, ('/infinite_image_browsing/image-thumbnail', '/infinite_image_browsing/file'), 'path=')
         if path:
             endpoint = f'/file={path}'
