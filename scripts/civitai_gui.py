@@ -1367,7 +1367,7 @@ if password == '':
 elif not password:
     msg = f'{AR} {TITLE} {RED}Disabled{RST}, Missing --encrypt-pass command line argument.'
 else:
-    msg = f'{AR} {TITLE} {BLUE}Enabled{RST} {ORG}v4{RST}' \
+    msg = f'{AR} {TITLE} {BLUE}Enabled{RST} {ORG}v5{RST}' \
           f'\n{AR} {TITLE} Check the release page for decrypting images in local Windows ' \
           f'https://github.com/gutris1/sd-encrypt-image'
 
