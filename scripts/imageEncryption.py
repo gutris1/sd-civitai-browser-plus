@@ -350,10 +350,9 @@ def imgProcess(fp, should_resize):
         return None
 
 async def img_req(endpoint, query, full_path, res):
-    if endpoint.startswith('/sd-hub-gallery/image'):
-        img_path = endpoint[len('/sd-hub-gallery/image'):]
-        if img_path:
-            endpoint = f'/file={img_path}'
+    sdhub = '/sd-hub-gallery/image='
+    if endpoint.startswith(sdhub) and (img_path := endpoint[len(sdhub):]):
+        endpoint = f'/file={img_path}'
 
     def process_query(endpoint_path, prefixes, param):
         if endpoint_path.startswith(prefixes):
