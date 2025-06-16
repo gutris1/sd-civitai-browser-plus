@@ -32,6 +32,9 @@ image_keys = ['Encrypt', 'EncryptPwdSha']
 tag_list = ['parameters', 'UserComment']
 headers = {"Cache-Control": "public, max-age=2592000"}
 
+def KAGGLE():
+    return 'Kaggle' if 'KAGGLE_DATA_PROXY_TOKEN' in os.environ else None
+
 def SetSharedOptions():
     section = ("encrypt_image_is_enable", "Encrypt image")
     option = shared.OptionInfo(default="Yes", label="Whether the encryption plug-in is enabled", section=section)
