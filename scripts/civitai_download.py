@@ -12,14 +12,14 @@ import json
 import time
 from pathlib import Path
 from modules.shared import opts, cmd_opts
-from scripts.civitai_global import print, debug_print
+from scripts.civitai_global import _print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 try:
     from zip_unicode import ZipHandler
 except ImportError:
-    print("Python module 'ZipUnicode' has not been imported correctly, please try to restart or install it manually.")
+    _print("Python module 'ZipUnicode' has not been imported correctly, please try to restart or install it manually.")
 
 total_count = 0
 current_count = 0
@@ -56,7 +56,7 @@ def start_aria2_rpc():
                 subprocess.Popen(stop_rpc, stdout=null, stderr=null)
             time.sleep(1)
         except Exception as e:
-            print(f"Failed to stop Aria2 RPC : {e}")
+            _print(f"Failed to stop Aria2 RPC : {e}")
     else:
         if os.path.exists(start_file):
             os.rename(start_file, running_file)
@@ -75,11 +75,11 @@ def start_aria2_rpc():
 
         subprocess.Popen(cmd, **subprocess_args)
         if os.path.exists(running_file):
-            print("Aria2 RPC restarted")
+            _print("Aria2 RPC restarted")
         else:
-            print("Aria2 RPC started")
+            _print("Aria2 RPC started")
     except Exception as e:
-        print(f"Failed to start Aria2 RPC server: {e}")
+        _print(f"Failed to start Aria2 RPC server: {e}")
 
 aria2path = Path(__file__).resolve().parents[1] / "aria2"
 os_type = platform.system()
@@ -384,12 +384,12 @@ def download_file(url, file_path, install_path, model_id, progress=gr.Progress()
 
         download_link = get_download_link(url, model_id)
         if not download_link:
-            print(f'File: "{file_name}" not found on CivitAI servers, it looks like the file is not available for download.')
+            _print(f'File: "{file_name}" not found on CivitAI servers, it looks like the file is not available for download.')
             gl.download_fail = True
             return
 
         elif download_link == "NO_API":
-            print(f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+            _print(f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
             gl.download_fail = "NO_API"
             if progress != None:
                 progress(0, desc=f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
@@ -426,7 +426,7 @@ def download_file(url, file_path, install_path, model_id, progress=gr.Progress()
                 raise ValueError(f'Failed to start download: {data}')
             gid = data['result']
         except Exception as e:
-            print(f"Failed to start download: {e}")
+            _print(f"Failed to start download: {e}")
             gl.download_fail = True
             return
 
@@ -470,7 +470,7 @@ def download_file(url, file_path, install_path, model_id, progress=gr.Progress()
                     progress(progress_percent / 100, desc=f"Downloading: {file_name} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted} - Queue: {current_count}/{total_count}")
 
                 if status_info['status'] == 'complete':
-                    print(f"Model saved to: {file_path}")
+                    _print(f"Model saved to: {file_path}")
                     if progress != None:
                         progress(1, desc=f"Model saved to: {file_path}")
                     gl.download_fail = False
@@ -485,7 +485,7 @@ def download_file(url, file_path, install_path, model_id, progress=gr.Progress()
                 time.sleep(0.25)
 
             except Exception as e:
-                print(f"Error occurred during Aria2 status update: {e}")
+                _print(f"Error occurred during Aria2 status update: {e}")
                 max_retries -= 1
                 if max_retries == 0:
                     if progress != None:
@@ -508,7 +508,7 @@ def info_to_json(install_path, model_id, model_sha256, unpackList=None):
             with open(json_file, 'r', encoding="utf-8") as f:
                 data = json.load(f)
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            _print(f"Failed to open {json_file}: {e}")
     else:
         data = {}
 
@@ -536,7 +536,7 @@ def download_file_old(url, file_path, model_id, progress=gr.Progress() if queue 
 
         download_link = get_download_link(url, model_id)
         if not download_link:
-            print(f'File: "{file_name_display}" not found on CivitAI servers, it looks like the file is not available for download.')
+            _print(f'File: "{file_name_display}" not found on CivitAI servers, it looks like the file is not available for download.')
             if progress != None:
                 progress(0, desc=f'File: "{file_name_display}" not found on CivitAI servers, it looks like the file is not available for download.')
                 time.sleep(5)
@@ -544,7 +544,7 @@ def download_file_old(url, file_path, model_id, progress=gr.Progress() if queue 
             return
 
         elif download_link == "NO_API":
-            print(f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+            _print(f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
             gl.download_fail = "NO_API"
             if progress != None:
                 progress(0, desc=f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
@@ -633,7 +633,7 @@ def download_file_old(url, file_path, model_id, progress=gr.Progress() if queue 
             downloaded_size = os.path.getsize(file_path)
             if downloaded_size >= total_size:
                 if not gl.cancel_status:
-                    print(f"Model saved to: {file_path}")
+                    _print(f"Model saved to: {file_path}")
                     if progress != None:
                         progress(1, desc=f"Model saved to: {file_path}")
                     gl.download_fail = False
@@ -642,7 +642,7 @@ def download_file_old(url, file_path, model_id, progress=gr.Progress() if queue 
             else:
                 if progress != None:
                     progress(0, desc=f"Encountered an error during download of: {file_name_display}, please try again.")
-                print(f"File download failed: {file_name_display}")
+                _print(f"File download failed: {file_name_display}")
                 gl.download_fail = True
                 if os.path.exists(file_path):
                     os.remove(file_path)
@@ -706,12 +706,12 @@ def download_create_thread(download_finish, queue_trigger, progress=gr_progress_
                         zip_handler.extract_all(directory)
                         zip_handler.zip_ref.close()
 
-                        print(f"Successfully extracted {item['model_filename']} to {directory}")
+                        _print(f"Successfully extracted {item['model_filename']} to {directory}")
                         os.remove(path_to_new_file)
                 except ImportError:
-                    print("Python module 'ZipUnicode' has not been imported correctly, cannot extract zip file. Please try to restart or install it manually.")
+                    _print("Python module 'ZipUnicode' has not been imported correctly, cannot extract zip file. Please try to restart or install it manually.")
                 except Exception as e:
-                    print(f"Failed to extract {item['model_filename']} with error: {e}")
+                    _print(f"Failed to extract {item['model_filename']} with error: {e}")
             if not gl.cancel_status:
                 if item['create_json']:
                     _file.save_model_info(item['install_path'], item['model_filename'], item['sub_folder'], item['model_sha256'], item['preview_html'], api_response=item['model_json'])
@@ -732,10 +732,10 @@ def download_create_thread(download_finish, queue_trigger, progress=gr_progress_
                     os.remove(path_file)
 
         if gl.cancel_status:
-            print(f'Cancelled download of "{item["model_filename"]}"')
+            _print(f'Cancelled download of "{item["model_filename"]}"')
         else:
             if not gl.download_fail == "NO_API":
-                print(f'Error occured during download of "{item["model_filename"]}"')
+                _print(f'Error occured during download of "{item["model_filename"]}"')
 
     if gl.cancel_status:
         card_name = None
