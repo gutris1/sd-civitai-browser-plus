@@ -8,6 +8,7 @@ import subprocess
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
 from scripts.civitai_global import _print
+from scripts.imageEncryption import KAGGLE
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
@@ -1012,9 +1013,9 @@ def on_ui_tabs():
         )
 
     if ver_bool:
-        tab_name = "CivitAI Browser+"
+        tab_name = "CivitAI Browser++"
     else:
-        tab_name = "Civitai Browser+"
+        tab_name = "Civitai Browser++"
 
     return (civitai_interface, tab_name, "civitai_interface"),
 
@@ -1033,10 +1034,10 @@ def on_ui_settings():
         browser = ("civitai_browser", "Browser")
         download = ("civitai_browser_download", "Downloads")
         from modules.options import categories
-        categories.register_category("civitai_browser_plus", "CivitAI Browser+")
+        categories.register_category("civitai_browser_plus", "CivitAI Browser++")
         cat_id = "civitai_browser_plus"
     else:
-        section = ("civitai_browser_plus", "CivitAI Browser+")
+        section = ("civitai_browser_plus", "CivitAI Browser++")
         browser = download = section
     if not (hasattr(shared.OptionInfo, "info") and callable(getattr(shared.OptionInfo, "info"))):
         def info(self, info):

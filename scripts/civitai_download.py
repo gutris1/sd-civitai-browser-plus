@@ -389,10 +389,10 @@ def download_file(url, file_path, install_path, model_id, progress=gr.Progress()
             return
 
         elif download_link == "NO_API":
-            _print(f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+            _print(f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser++ settings in the SD-WebUI settings tab')
             gl.download_fail = "NO_API"
             if progress != None:
-                progress(0, desc=f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+                progress(0, desc=f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser++ settings in the SD-WebUI settings tab')
                 time.sleep(5)
             return
 
@@ -544,10 +544,10 @@ def download_file_old(url, file_path, model_id, progress=gr.Progress() if queue 
             return
 
         elif download_link == "NO_API":
-            _print(f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+            _print(f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser++ settings in the SD-WebUI settings tab')
             gl.download_fail = "NO_API"
             if progress != None:
-                progress(0, desc=f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+                progress(0, desc=f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser++ settings in the SD-WebUI settings tab')
                 time.sleep(5)
             return
 
