@@ -7,8 +7,8 @@ import re
 import subprocess
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
-from scripts.civitai_global import _print
-from scripts.imageEncryption import KAGGLE
+from scripts.civitai_global import _print, RST, AR, ORANGE, RED, BLUE
+from scripts.imageEncryption import KAGGLE, password, image_encryption_started
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
@@ -1356,12 +1356,13 @@ def on_ui_settings():
         shared.opts.add_option(f"{setting_name}_default_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=download, **({'category_id': cat_id} if ver_bool else {})))
 
 if KAGGLE():
+    TITLE = 'Image Encryption:'
     if password == '':
         _print(f'{AR} {TITLE} {RED}Disabled{RST}, --encrypt-pass value is empty.')
     elif not password:
         _print(f'{AR} {TITLE} {RED}Disabled{RST}, Missing --encrypt-pass command line argument.')
     else:
-        _print(f'{AR} {TITLE} {BLUE}Enabled{RST} {ORG}v5{RST}\n{AR} {TITLE} Check the release page for decrypting images in local Windows https://github.com/gutris1/sd-encrypt-image')
+        _print(f'{AR} {TITLE} {BLUE}Enabled{RST} {ORANGE}v6{RST}\n{AR} {TITLE} Check the release page for decrypting images in local Windows https://github.com/gutris1/sd-encrypt-image')
         script_callbacks.on_app_started(image_encryption_started)
 
 script_callbacks.on_ui_tabs(on_ui_tabs)

@@ -21,6 +21,7 @@ import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 import scripts.civitai_download as _download
+import scripts.imageEncryption as iE
 
 try:
     from send2trash import send2trash
@@ -172,7 +173,6 @@ def resize(b):
 
 def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     proxies, ssl = _api.get_proxies()
-
     file_path = Path(file_path)
     install_path = file_path.parent
     name = file_path.stem
@@ -183,12 +183,9 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
         return
 
     if not sha256 and json_file.exists():
-        try:
-            data = json.loads(json_file.read_text(encoding='utf-8'))
-            if 'sha256' in data and data['sha256']:
-                sha256 = data['sha256'].upper()
-        except Exception as e:
-            _print(f'Failed to open {json_file}: {e}')
+        data = json.loads(json_file.read_text(encoding='utf-8'))
+        if 'sha256' in data and data['sha256']:
+            sha256 = data['sha256'].upper()
     elif sha256:
         sha256 = sha256.upper()
 
@@ -200,21 +197,19 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                         if image['type'] == 'image':
                             url_with_width = re.sub(r'/width=\d+', f"/width={image['width']}", image['url'])
                             response = requests.get(url_with_width, proxies=proxies, verify=ssl)
-
                             if response.status_code == 200:
                                 resized = resize(response.content)
 
                                 if KAGGLE():
-                                    try:
-                                        img = Image.open(resized)
-                                        imginfo = img.info or {}
-                                        if not all(k in imginfo for k in ['Encrypt', 'EncryptPwdSha']):
-                                            iE.EncryptedImage.from_image(img).save(image_path)
-                                            _print(f"Encrypted preview saved at '{image_path}'")
-                                    except Exception as e:
-                                        _print(f'Error : {image_path} : {e}')
+                                    img = Image.open(resized)
+                                    imginfo = img.info or {}
+                                    if not all(k in imginfo for k in ['Encrypt', 'EncryptPwdSha']):
+                                        iE.EncryptedImage.from_image(img).save(image_path)
                                 else:
                                     image_path.write_bytes(resized.read())
+
+                                _print(f"preview saved at '{image_path}'")
+
                             else:
                                 _print(f'Failed to save preview. Status code: {response.status_code}')
                             return
