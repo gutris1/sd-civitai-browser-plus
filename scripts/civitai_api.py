@@ -1,9 +1,7 @@
 import requests
 import json
 import gradio as gr
-import urllib.request
 import urllib.parse
-import urllib.error
 import os
 import re
 import datetime

@@ -16,12 +16,10 @@ from pathlib import Path
 from urllib.parse import urlparse
 from modules.shared import cmd_opts, opts
 from scripts.civitai_global import _print, debug_print
-from scripts.imageEncryption import KAGGLE
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 import scripts.civitai_download as _download
-import scripts.imageEncryption as iE
 
 try:
     from send2trash import send2trash
@@ -46,6 +44,9 @@ except AttributeError:
     queue = not cmd_opts.disable_queue
 except:
     queue = True
+
+def KAGGLE():
+    return 'Kaggle' if 'COLAB_JUPYTER_TOKEN' in os.environ else None
 
 def delete_model(delete_finish=None, model_filename=None, model_string=None, list_versions=None, sha256=None, selected_list=None, model_ver=None, model_json=None):
     deleted = False
@@ -201,10 +202,12 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                                 resized = resize(response.content)
 
                                 if KAGGLE():
+                                    import sd_image_encryption # type: ignore
+
                                     img = Image.open(resized)
                                     imginfo = img.info or {}
                                     if not all(k in imginfo for k in ['Encrypt', 'EncryptPwdSha']):
-                                        iE.EncryptedImage.from_image(img).save(image_path)
+                                        sd_image_encryption.EncryptedImage.from_image(img).save(image_path)
                                 else:
                                     image_path.write_bytes(resized.read())
 

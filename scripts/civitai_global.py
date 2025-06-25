@@ -5,7 +5,6 @@ from pathlib import Path
 import datetime
 import warnings
 import json
-import os
 
 def init():    
     warnings.simplefilter('ignore', InsecureRequestWarning)
@@ -57,4 +56,4 @@ def debug_print(print_message):
     if do_debug_print: print(f'{DEBUG} {TITLE} {print_message}')
 
 def _print(msg):
-    print(msg if 'Image Encryption:' in msg else f'{AR} {TITLE} {msg}')
+    print(f'{AR} {TITLE} {msg}')

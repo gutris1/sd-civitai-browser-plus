@@ -12,7 +12,7 @@ import json
 import time
 from pathlib import Path
 from modules.shared import opts, cmd_opts
-from scripts.civitai_global import _print, debug_print
+from scripts.civitai_global import _print
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
