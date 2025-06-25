@@ -46,8 +46,8 @@ RED = '\033[38;5;196m'
 CYAN = "\033[36m"
 BLUE = '\033[38;5;39m'
 GREEN = "\033[38;5;46m"
-AR = f'{ORANGE}▶{RST}'
-TITLE = f'{CYAN}CivitAI Browser++{RST}:'
+AR = f'{BLUE}●{RST}'
+TITLE = f'{CYAN}CivitAI Browser+{RST}:'
 DEBUG = f'[{GREEN}DEBUG{RST}]'
 
 do_debug_print = getattr(opts, 'civitai_debug_prints', False)
