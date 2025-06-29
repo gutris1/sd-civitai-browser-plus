@@ -45,7 +45,7 @@ except AttributeError:
 except:
     queue = True
 
-KAGGLE = 'COLAB_JUPYTER_TOKEN' in os.environ
+KAGGLE = 'KAGGLE_DATA_PROXY_TOKEN' in os.environ
 
 def delete_model(delete_finish=None, model_filename=None, model_string=None, list_versions=None, sha256=None, selected_list=None, model_ver=None, model_json=None):
     deleted = False
