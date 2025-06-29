@@ -45,8 +45,7 @@ except AttributeError:
 except:
     queue = True
 
-def KAGGLE():
-    return 'Kaggle' if 'COLAB_JUPYTER_TOKEN' in os.environ else None
+KAGGLE = 'COLAB_JUPYTER_TOKEN' in os.environ
 
 def delete_model(delete_finish=None, model_filename=None, model_string=None, list_versions=None, sha256=None, selected_list=None, model_ver=None, model_json=None):
     deleted = False
@@ -163,14 +162,14 @@ def delete_associated_files(directory, base_name):
                 os.remove(path_to_delete)
                 _print(f"Associated file deleted: {path_to_delete}")
 
-def resize(b):
-    img = Image.open(io.BytesIO(b))
-    w, h = img.size
-    s = (512, int(h * 512 / w)) if w > h else (int(w * 512 / h), 512)
-    out = io.BytesIO()
-    img.resize(s, Image.LANCZOS).save(out, format='PNG')
-    out.seek(0)
-    return out
+def resizer(b, size=512):
+    i = Image.open(io.BytesIO(b))
+    w, h = i.size
+    s = (size, int(h * size / w)) if w > h else (int(w * size / h), size)
+    o = io.BytesIO()
+    i.resize(s, Image.LANCZOS).save(o, format='PNG')
+    o.seek(0)
+    return o
 
 def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     proxies, ssl = _api.get_proxies()
@@ -199,9 +198,9 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                             url_with_width = re.sub(r'/width=\d+', f"/width={image['width']}", image['url'])
                             response = requests.get(url_with_width, proxies=proxies, verify=ssl)
                             if response.status_code == 200:
-                                resized = resize(response.content)
+                                resized = resizer(response.content)
 
-                                if KAGGLE():
+                                if KAGGLE:
                                     import sd_image_encryption # type: ignore
 
                                     img = Image.open(resized)
@@ -942,6 +941,7 @@ def get_save_path_and_name(install_path, file_name, api_response, sub_folder=Non
 def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, gen_hash, create_html, progress=gr.Progress() if queue else None):
     global no_update
     proxies, ssl = _api.get_proxies()
+
     gl.scan_files = True
     no_update = False
     if from_ver:
@@ -1076,18 +1076,21 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             url_count += 1
         url_done = 0
         api_response = {}
-        for url in url_list:
+
+        for url_index, url in enumerate(url_list):
             while url:
                 try:
                     if progress is not None:
                         progress(url_done / url_count, desc=f"Sending API request... {url_done}/{url_count}")
+
                     response = requests.get(url, timeout=(60,30), proxies=proxies, verify=ssl)
+
                     if response.status_code == 200:
                         api_response_json = response.json()
-
                         all_items.extend(api_response_json['items'])
                         metadata = api_response_json.get('metadata', {})
-                        url = metadata.get('nextPage', None)
+                        next_url = metadata.get('nextPage', None)
+                        url = next_url
                     elif response.status_code == 503:
                         _print(f"Error: Received status code: {response.status_code} with URL: {url}")
                         _print(response.text)
@@ -1099,11 +1102,18 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                         _print(f"Error: Received status code {response.status_code} with URL: {url}")
                         url = None
                     url_done += 1
-                except requests.exceptions.Timeout:
+
+                except requests.exceptions.Timeout as e:
                     _print(f"Request timed out for {url}. Skipping...")
                     url = None
-                except requests.exceptions.ConnectionError:
+                except requests.exceptions.ConnectionError as e:
                     _print("Failed to connect to the API. The servers might be offline.")
+                    url = None
+                except requests.exceptions.ProxyError as e:
+                    _print(f"Proxy error: {e}")
+                    url = None
+                except requests.exceptions.SSLError as e:
+                    _print(f"SSL error: {e}")
                     url = None
                 except Exception as e:
                     _print(f"An unexpected error occurred: {e}")
