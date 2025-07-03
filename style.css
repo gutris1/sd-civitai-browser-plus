@@ -812,11 +812,6 @@
 /*-----------------------------------------*/
 /*End CSS accordion for toggling extra metadata*/
 
-#txt2img_textual_inversion_cards .actions > .description,
-#txt2img_checkpoints_cards .actions > .description,
-#txt2img_lora_cards .actions > .description,
-#img2img_textual_inversion_cards .actions > .description,
-#img2img_checkpoints_cards .actions > .description,
-#img2img_lora_cards .actions > .description {
-    display: none !important;
+.extra-network-pane .card .actions .description {
+  display: none !important;
 }
