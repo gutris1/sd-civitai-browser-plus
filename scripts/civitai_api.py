@@ -1089,7 +1089,7 @@ def update_file_info(model_string, model_version, file_metadata):
 
 def get_proxies():
     custom_proxy = getattr(opts, "custom_civitai_proxy", "")
-    disable_ssl = getattr(opts, "disable_sll_proxy", False)  # Note: typo in original - "sll" instead of "ssl"
+    disable_ssl = getattr(opts, "disable_sll_proxy", False)
     cabundle_path = getattr(opts, "cabundle_path_proxy", "")
 
     ssl = True
@@ -1097,7 +1097,7 @@ def get_proxies():
     if custom_proxy:
         if not disable_ssl:
             if cabundle_path:
-                ssl = cabundle_path
+                ssl = os.path(cabundle_path)
         else:
             ssl = False
 
