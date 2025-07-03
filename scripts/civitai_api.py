@@ -1,9 +1,7 @@
 import requests
 import json
 import gradio as gr
-import urllib.request
 import urllib.parse
-import urllib.error
 import os
 import re
 import datetime
@@ -16,7 +14,7 @@ from modules.images import read_info_from_image
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
 from html import escape
-from scripts.civitai_global import print, debug_print
+from scripts.civitai_global import _print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
@@ -47,7 +45,7 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
             folder = os.path.join(main_models,"Stable-diffusion")
 
     elif content_type == "Hypernetwork":
-        if getattr(cmd_opts, "hypernetwork_dir", None) and not custom_folder:
+        if cmd_opts.hypernetwork_dir and not custom_folder:
             folder = cmd_opts.hypernetwork_dir
         else:
             folder = os.path.join(main_models, "hypernetworks")
@@ -200,9 +198,9 @@ def model_list_html(json_data):
                                 if sha256:
                                     existing_files_sha256.add(sha256.upper())
                             else:
-                                print(f"Invalid JSON data in {json_path}. Expected a dictionary.")
+                                _print(f"Invalid JSON data in {json_path}. Expected a dictionary.")
                         except Exception as e:
-                            print(f"Error decoding JSON in {json_path}: {e}")
+                            _print(f"Error decoding JSON in {json_path}: {e}")
 
     for item in json_data['items']:
         model_id = item.get('id')
@@ -524,7 +522,7 @@ def update_model_versions(model_id, json_input=None):
                                                 installed_versions.add(version_name)
                                                 break
                         except Exception as e:
-                            print(f"failed to read: \"{file}\": {e}")
+                            _print(f"failed to read: \"{file}\": {e}")
 
                     #filename_check
                     for version_name, version_filename, _ in version_files:
@@ -889,7 +887,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
 
                                 break
                         except Exception as e:
-                            print(f"Error decoding JSON: {str(e)}")
+                            _print(f"Error decoding JSON: {str(e)}")
             else:
                 #filename_check
                 for filename in files:
@@ -1046,7 +1044,7 @@ def update_file_info(model_string, model_version, file_metadata):
                                                             installed = True
                                                             break
                                                     except Exception as e:
-                                                        print(f"Error decoding JSON: {str(e)}")
+                                                        _print(f"Error decoding JSON: {str(e)}")
                                 default_sub = sub_folder_value(content_type, desc)
                                 if folder_location == "None":
                                     folder_location = model_folder
@@ -1102,10 +1100,9 @@ def get_proxies():
                 ssl = os.path(cabundle_path)
         else:
             ssl = False
-        proxies = {
-            'http': custom_proxy,
-            'https': custom_proxy,
-        }
+
+        proxies = {'http': custom_proxy, 'https': custom_proxy}
+
     return proxies, ssl
 
 def get_headers(referer=None, no_api=None):
@@ -1134,18 +1131,18 @@ def request_civit_api(api_url=None, skip_error_check=False):
             return data
         response.raise_for_status()
     except requests.exceptions.Timeout as e:
-        print("The request timed out. Please try again later.")
+        _print("The request timed out. Please try again later.")
         return "timeout"
     except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
+        _print(f"Error: {e}")
         return "error"
     else:
         response.encoding = "utf-8"
         try:
             data = json.loads(response.text)
         except json.JSONDecodeError:
-            print(response.text)
-            print("The CivitAI servers are currently offline. Please try again later.")
+            _print(response.text)
+            _print("The CivitAI servers are currently offline. Please try again later.")
             return "offline"
     return data
 

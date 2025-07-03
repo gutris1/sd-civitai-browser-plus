@@ -811,3 +811,7 @@
 }
 /*-----------------------------------------*/
 /*End CSS accordion for toggling extra metadata*/
+
+.extra-network-pane .card .actions .description {
+  display: none !important;
+}

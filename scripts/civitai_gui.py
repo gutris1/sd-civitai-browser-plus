@@ -7,19 +7,11 @@ import re
 import subprocess
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
-from scripts.civitai_global import print
+from scripts.civitai_global import _print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
 import scripts.civitai_api as _api
-from scripts.imageEncryption import image_encryption_started, password, KAGGLE
-
-RST = '\033[0m'
-ORG = '\033[38;5;208m'
-AR = f'{ORG}▶{RST}'
-BLUE = '\033[38;5;39m'
-RED = '\033[38;5;196m'
-TITLE = 'Image Encryption:'
 
 def git_tag():
     try:
@@ -49,7 +41,7 @@ if not forge:
             ver = ver.split('-')[0].rsplit('-', 1)[0]
             ver_bool = version.parse(ver[0:]) >= version.parse("1.7")
     except ImportError:
-        print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
+        _print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
         ver_bool = False
 
 gl.init()
@@ -78,8 +70,8 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, hi, sn, ss, ts):
         with open(config, "r", encoding="utf8") as file:
             data = json.load(file)
     except:
-        print(f"Cannot save settings, failed to open \"{file}\"")
-        print("Please try to manually repair the file or remove it to reset settings.")
+        _print(f"Cannot save settings, failed to open \"{file}\"")
+        _print("Please try to manually repair the file or remove it to reset settings.")
         return
 
     # Remove any keys containing the text `civitai_interface`
@@ -93,7 +85,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, hi, sn, ss, ts):
     # Save the modified content back to the file
     with open(config, 'w', encoding="utf-8") as file:
         json.dump(data, file, indent=4)
-        print(f"Updated settings to: {config}")
+        _print(f"Updated settings to: {config}")
 
 def all_visible(html_check):
     return gr.Button.update(visible="model-checkbox" in html_check)
@@ -162,14 +154,14 @@ def get_base_models():
     "Stable Cascade","Pony","SVD","SVD XT","Playground v2","PixArt a", "Flux.1 S", "Flux.1 D","Other"]
 
     if not isinstance(json_return, dict):
-        print("Couldn't fetch latest baseModel options, using default.")
+        _print("Couldn't fetch latest baseModel options, using default.")
         return default_options
 
     try:
         options = json_return['error']['issues'][0]['unionErrors'][0]['issues'][0]['options']
         return options
     except (KeyError, IndexError) as e:
-        print(f"Basemodel fetch error extracting options: {e}")
+        _print(f"Basemodel fetch error extracting options: {e}")
         return default_options
 
 def on_ui_tabs():    
@@ -1020,7 +1012,7 @@ def on_ui_tabs():
         )
 
     if ver_bool:
-        tab_name = "CivitAI Browser++"
+        tab_name = "CivitAI Browser+"
     else:
         tab_name = "Civitai Browser+"
 
@@ -1041,10 +1033,10 @@ def on_ui_settings():
         browser = ("civitai_browser", "Browser")
         download = ("civitai_browser_download", "Downloads")
         from modules.options import categories
-        categories.register_category("civitai_browser_plus_plus", "CivitAI Browser++")
-        cat_id = "civitai_browser_plus_plus"
+        categories.register_category("civitai_browser_plus", "CivitAI Browser+")
+        cat_id = "civitai_browser_plus"
     else:
-        section = ("civitai_browser_plus_plus", "CivitAI Browser++")
+        section = ("civitai_browser_plus", "CivitAI Browser+")
         browser = download = section
     if not (hasattr(shared.OptionInfo, "info") and callable(getattr(shared.OptionInfo, "info"))):
         def info(self, info):
@@ -1240,7 +1232,7 @@ def on_ui_settings():
         "civitai_not_found_print",
         shared.OptionInfo(
             True,
-            'Show "Model not found" print during update scanning',
+            'Show "Model not found" _print during update scanning',
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
         )
@@ -1361,15 +1353,6 @@ def on_ui_settings():
             setting_name = "LORA_LoCon"
 
         shared.opts.add_option(f"{setting_name}_default_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=download, **({'category_id': cat_id} if ver_bool else {})))
-
-if KAGGLE():
-    if password == '':
-        print(f'{AR} {TITLE} {RED}Disabled{RST}, --encrypt-pass value is empty.')
-    elif not password:
-        print(f'{AR} {TITLE} {RED}Disabled{RST}, Missing --encrypt-pass command line argument.')
-    else:
-        print(f'{AR} {TITLE} {BLUE}Enabled{RST} {ORG}v5{RST}\n{AR} {TITLE} Check the release page for decrypting images in local Windows https://github.com/gutris1/sd-encrypt-image')
-        script_callbacks.on_app_started(image_encryption_started)
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)

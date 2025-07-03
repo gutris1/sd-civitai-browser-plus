@@ -15,22 +15,20 @@ from PIL import Image
 from pathlib import Path
 from urllib.parse import urlparse
 from modules.shared import cmd_opts, opts
-from scripts.civitai_global import print, debug_print
-from scripts.imageEncryption import KAGGLE
+from scripts.civitai_global import _print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 import scripts.civitai_download as _download
-import scripts.imageEncryption as iE
 
 try:
     from send2trash import send2trash
 except ImportError:
-    print("Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
+    _print("Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
 try:
     from bs4 import BeautifulSoup
 except ImportError:
-    print("Python module 'BeautifulSoup' has not been imported correctly, please try to restart or install it manually.")
+    _print("Python module 'BeautifulSoup' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
@@ -39,12 +37,15 @@ no_update = False
 from_ver = False
 from_tag = False
 from_installed = False
+
 try:
     queue = not cmd_opts.no_gradio_queue
 except AttributeError:
     queue = not cmd_opts.disable_queue
 except:
     queue = True
+
+KAGGLE = 'KAGGLE_DATA_PROXY_TOKEN' in os.environ
 
 def delete_model(delete_finish=None, model_filename=None, model_string=None, list_versions=None, sha256=None, selected_list=None, model_ver=None, model_json=None):
     deleted = False
@@ -68,7 +69,7 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
                     break
 
             if selected_content_type is None:
-                print("Model ID not found in json_data. (delete_model)")
+                _print("Model ID not found in json_data. (delete_model)")
                 return
     else:
         for item in model_json["items"]:
@@ -91,7 +92,7 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
                             if file_sha256:
                                 file_sha256 = file_sha256.upper()
                     except Exception as e:
-                        print(f"Failed to open: {file_path}: {e}")
+                        _print(f"Failed to open: {file_path}: {e}")
                         file_sha256 = "0"
 
                     if file_sha256 == sha256_upper:
@@ -101,19 +102,19 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
                             if os.path.isfile(unpacked_file_path):
                                 try:
                                     send2trash(unpacked_file_path)
-                                    print(f"File moved to trash based on unpackList: {unpacked_file_path}")
+                                    _print(f"File moved to trash based on unpackList: {unpacked_file_path}")
                                 except:
                                     os.remove(unpacked_file_path)
-                                    print(f"File deleted based on unpackList: {unpacked_file_path}")
+                                    _print(f"File deleted based on unpackList: {unpacked_file_path}")
 
                         base_name, _ = os.path.splitext(file)
                         if os.path.isfile(file_path):
                             try:
                                 send2trash(file_path)
-                                print(f"Model moved to trash based on SHA-256: {file_path}")
+                                _print(f"Model moved to trash based on SHA-256: {file_path}")
                             except:
                                 os.remove(file_path)
-                                print(f"Model deleted based on SHA-256: {file_path}")
+                                _print(f"Model deleted based on SHA-256: {file_path}")
                             delete_associated_files(root, base_name)
                             deleted = True
 
@@ -129,10 +130,10 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
                     if os.path.isfile(path_file):
                         try:
                             send2trash(path_file)
-                            print(f"Model moved to trash based on filename: {path_file}")
+                            _print(f"Model moved to trash based on filename: {path_file}")
                         except:
                             os.remove(path_file)
-                            print(f"Model deleted based on filename: {path_file}")
+                            _print(f"Model deleted based on filename: {path_file}")
                         delete_associated_files(root, current_file_name)
 
     number = _download.random_number(delete_finish)
@@ -156,63 +157,66 @@ def delete_associated_files(directory, base_name):
             path_to_delete = os.path.join(directory, file)
             try:
                 send2trash(path_to_delete)
-                print(f"Associated file moved to trash: {path_to_delete}")
+                _print(f"Associated file moved to trash: {path_to_delete}")
             except:
                 os.remove(path_to_delete)
-                print(f"Associated file deleted: {path_to_delete}")
+                _print(f"Associated file deleted: {path_to_delete}")
+
+def resizer(b, size=512):
+    i = Image.open(io.BytesIO(b))
+    w, h = i.size
+    s = (size, int(h * size / w)) if w > h else (int(w * size / h), size)
+    o = io.BytesIO()
+    i.resize(s, Image.LANCZOS).save(o, format='PNG')
+    o.seek(0)
+    return o
 
 def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     proxies, ssl = _api.get_proxies()
-    json_file = os.path.splitext(file_path)[0] + ".json"
-    install_path, file_name = os.path.split(file_path)
-    name = os.path.splitext(file_name)[0]
-    filename = f'{name}.preview.png'
-    image_path = os.path.join(install_path, filename)
+    file_path = Path(file_path)
+    install_path = file_path.parent
+    name = file_path.stem
+    json_file = file_path.with_suffix('.json')
+    image_path = install_path / f'{name}.preview.png'
 
-    if not overwrite_toggle:
-        if os.path.exists(image_path):
-            return
+    if not overwrite_toggle and image_path.exists():
+        return
 
-    if not sha256:
-        if os.path.exists(json_file):
-            try:
-                with open(json_file, 'r', encoding="utf-8") as f:
-                    data = json.load(f)
-                    if 'sha256' in data and data['sha256']:
-                        sha256 = data['sha256'].upper()
-            except Exception as e:
-                print(f"Failed to open {json_file}: {e}")
-    else:
+    if not sha256 and json_file.exists():
+        data = json.loads(json_file.read_text(encoding='utf-8'))
+        if 'sha256' in data and data['sha256']:
+            sha256 = data['sha256'].upper()
+    elif sha256:
         sha256 = sha256.upper()
 
-    for item in api_response["items"]:
-        for version in item["modelVersions"]:
-            for file_entry in version["files"]:
-                if file_entry["hashes"].get("SHA256") == sha256:
-                    for image in version["images"]:
-                        if image["type"] == "image":
-                            url_with_width = re.sub(r'/width=\d+', f'/width={image["width"]}', image["url"])
-
+    for item in api_response['items']:
+        for version in item['modelVersions']:
+            for file_entry in version['files']:
+                if file_entry['hashes'].get('SHA256') == sha256:
+                    for image in version['images']:
+                        if image['type'] == 'image':
+                            url_with_width = re.sub(r'/width=\d+', f"/width={image['width']}", image['url'])
                             response = requests.get(url_with_width, proxies=proxies, verify=ssl)
                             if response.status_code == 200:
-                                with open(image_path, 'wb') as img_file:
-                                    img_file.write(response.content)
+                                resized = resizer(response.content)
 
-                                if KAGGLE():
-                                    try:
-                                        imgkeys = ['Encrypt', 'EncryptPwdSha']
-                                        img = Image.open(image_path)
-                                        imginfo = img.info or {}
-                                        if not all(k in imginfo for k in imgkeys):
-                                            iE.EncryptedImage.from_image(img).save(image_path)
-                                            print(f"Encrypted preview saved at \"{image_path}\"")
-                                    except Exception as e:
-                                        print(f"Error : {image_path} : {e}")
+                                if KAGGLE:
+                                    import sd_image_encryption # type: ignore
+
+                                    img = Image.open(resized)
+                                    imginfo = img.info or {}
+                                    if not all(k in imginfo for k in ['Encrypt', 'EncryptPwdSha']):
+                                        sd_image_encryption.EncryptedImage.from_image(img).save(image_path)
+                                else:
+                                    image_path.write_bytes(resized.read())
+
+                                _print(f"preview saved at '{image_path}'")
+
                             else:
-                                print(f"Failed to save preview. Status code: {response.status_code}")
+                                _print(f'Failed to save preview. Status code: {response.status_code}')
                             return
 
-                    print(f"No preview images found for \"{name}\"")
+                    _print(f"No preview images found for '{name}'")
                     return
 
 def get_image_path(install_path, api_response, sub_folder):
@@ -253,16 +257,16 @@ def save_images(preview_html, model_filename, install_path, sub_folder, api_resp
             with urllib.request.urlopen(img_url) as url:
                 with open(os.path.join(image_path, filename), 'wb') as f:
                     f.write(url.read())
-                    print(f"Downloaded {filename}")
+                    _print(f"Downloaded {filename}")
 
         except urllib.error.URLError as e:
-            print(f'Error: {e.reason}')
+            _print(f'Error: {e.reason}')
 
 def card_update(gr_components, model_name, list_versions, is_install):
     if gr_components:
         version_choices = gr_components['choices']
     else:
-        print("Couldn't retrieve version, defaulting to installed")
+        _print("Couldn't retrieve version, defaulting to installed")
         model_name += ".New"
         return model_name, None, None
 
@@ -314,7 +318,7 @@ def gen_sha256(file_path):
                 hash_value = data['sha256']
                 return hash_value
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            _print(f"Failed to open {json_file}: {e}")
 
     def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         while True:
@@ -344,7 +348,7 @@ def gen_sha256(file_path):
             with open(json_file, 'w', encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            _print(f"Failed to open {json_file}: {e}")
     else:
         data = {'sha256': hash_value}
         with open(json_file, 'w', encoding="utf-8") as f:
@@ -358,7 +362,7 @@ def convert_local_images(html):
         url = urlparse(simg["src"])
         path = url.path
         if not os.path.exists(path):
-            print("URL path does not exist: %s" % url.path)
+            _print("URL path does not exist: %s" % url.path)
             # Try the raw url, files can be saved in windows as "C:\..." and
             # that confuses urlparse because people only really test on Linux.
             if os.path.exists(simg["src"]):
@@ -403,9 +407,9 @@ def model_from_sent(model_name, content_type):
 
     if not model_file:
         output_html = _api.api_error_msg("path_not_found")
-        print(f'Error: Could not find model path for model: "{model_name}"')
-        print(f'Content type: "{content_type}"')
-        print(f'Main folder path: "{folder}"')
+        _print(f'Error: Could not find model path for model: "{model_name}"')
+        _print(f'Content type: "{content_type}"')
+        _print(f'Main folder path: "{folder}"')
         use_local_html = False
 
     if use_local_html:
@@ -505,9 +509,9 @@ def send_to_browser(model_name, content_type, click_first_item):
 
     if not model_file:
         output_html = _api.api_error_msg("path_not_found")
-        print(f'Error: Could not find model path for model: "{model_name}"')
-        print(f'Content type: "{content_type}"')
-        print(f'Main folder path: "{folder}"')
+        _print(f'Error: Could not find model path for model: "{model_name}"')
+        _print(f'Content type: "{content_type}"')
+        _print(f'Main folder path: "{folder}"')
     if not output_html:
         modelID = get_models(model_file, True)
         if not modelID or modelID == "Model not found":
@@ -576,17 +580,25 @@ def getSubfolders(model_folder, basemodel=None, nsfw=None, author=None, modelNam
         with open(gl.subfolder_json, 'r') as json_file:
             config_data = json.load(json_file)
 
+        if not any(isinstance(v, str) for v in config_data.values()):
+            return sub_folders
+
         for key, value in config_data.items():
             if basemodel:
                 try:
                     converted_value = convertCustomFolder(value, basemodel, nsfw, author, modelName, modelId, versionName, versionId)
                     sub_folders.append(converted_value)
                 except Exception as e:
-                    print(f"Error: Failed to process custom subfolder: {e}")
+                    _print(f"Error: Failed to process custom subfolder: {e}")
             else:
-                upper_value = value.upper()
+                if isinstance(value, str):
+                    upper_value = value.upper()
+                else:
+                    upper_value = str(value).upper()
+
                 if not upper_value.startswith(os.sep):
                     upper_value = os.sep + upper_value
+
                 sub_folders.append(upper_value)
 
         sub_folders.remove("None")
@@ -594,7 +606,7 @@ def getSubfolders(model_folder, basemodel=None, nsfw=None, author=None, modelNam
         sub_folders.insert(0, "None")
 
     except Exception as e:
-        print(e)
+        _print(e)
         sub_folders = ["None"]
 
     list = set()
@@ -633,7 +645,7 @@ def clean_description(desc):
 
         cleaned_text = soup.get_text()
     except ImportError:
-        print("Python module 'BeautifulSoup' was not imported correctly, cannot clean description. Please try to restart or install it manually.")
+        _print("Python module 'BeautifulSoup' was not imported correctly, cannot clean description. Please try to restart or install it manually.")
         cleaned_text = desc
     return cleaned_text
 
@@ -647,13 +659,13 @@ def make_dir(path):
                 os.makedirs(path, mode=0o777)
             except OSError as e:
                 if e.errno == errno.EACCES:
-                    print("Permission denied even with elevated permissions.")
+                    _print("Permission denied even with elevated permissions.")
                 else:
-                    print(f"Error creating directory: {e}")
+                    _print(f"Error creating directory: {e}")
         else:
-            print(f"Error creating directory: {e}")
+            _print(f"Error creating directory: {e}")
     except Exception as e:
-        print(f"Error creating directory: {e}")
+        _print(f"Error creating directory: {e}")
 
 def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
     save_path, filename = get_save_path_and_name(install_path, file_name, api_response, sub_folder)
@@ -690,7 +702,7 @@ def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_ht
         path_to_new_file = os.path.join(save_path, f'{filename}.html')
         with open(path_to_new_file, 'wb') as f:
             f.write(HTML.encode('utf8'))
-        print(f"HTML saved at \"{path_to_new_file}\"")
+        _print(f"HTML saved at \"{path_to_new_file}\"")
 
     if save_api_info:
         path_to_new_file = os.path.join(save_path, f'{filename}.api_info.json')
@@ -765,7 +777,7 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                         json.dump(content, f, indent=4)
 
                     if changed:
-                        print(f"Model info saved to \"{json_file}\"")
+                        _print(f"Model info saved to \"{json_file}\"")
                     return "found"
 
     return "not found"
@@ -787,7 +799,7 @@ def get_models(file_path, gen_hash=None):
                 if 'sha256' in data and data['sha256']:
                     sha256 = data['sha256']
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            _print(f"Failed to open {json_file}: {e}")
 
     if not modelId or not modelVersionId or not sha256:
         if not sha256 and gen_hash:
@@ -805,7 +817,7 @@ def get_models(file_path, gen_hash=None):
             if response.status_code == 200:
                 api_response = response.json()
                 if 'error' in api_response:
-                    print(f"\"{file_path}\": {api_response['error']}")
+                    _print(f"\"{file_path}\": {api_response['error']}")
                     return None
                 else:
                     modelId = api_response.get("modelId", "")
@@ -828,7 +840,7 @@ def get_models(file_path, gen_hash=None):
                     with open(json_file, 'w', encoding="utf-8") as f:
                         json.dump(data, f, indent=4)
                 except Exception as e:
-                    print(f"Failed to open {json_file}: {e}")
+                    _print(f"Failed to open {json_file}: {e}")
             else:
                 data = {
                     'modelId': modelId,
@@ -840,13 +852,13 @@ def get_models(file_path, gen_hash=None):
 
         return modelId
     except requests.exceptions.Timeout:
-        print(f"Request timed out for {file_path}. Skipping...")
+        _print(f"Request timed out for {file_path}. Skipping...")
         return "offline"
     except requests.exceptions.ConnectionError:
-        print("Failed to connect to the API. The CivitAI servers might be offline.")
+        _print("Failed to connect to the API. The CivitAI servers might be offline.")
         return "offline"
     except Exception as e:
-        print(f"An error occurred for {file_path}: {str(e)}")
+        _print(f"An error occurred for {file_path}: {str(e)}")
         return None
 
 def version_match(file_paths, api_response):
@@ -863,7 +875,7 @@ def version_match(file_paths, api_response):
                     if sha256:
                         sha256_hashes[os.path.basename(file_path)] = sha256.upper()
                 except Exception as e:
-                    print(f"Failed to open {json_path}: {e}")
+                    _print(f"Failed to open {json_path}: {e}")
 
     file_names_and_hashes = set()
     for file_path in file_paths:
@@ -929,6 +941,7 @@ def get_save_path_and_name(install_path, file_name, api_response, sub_folder=Non
 def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, gen_hash, create_html, progress=gr.Progress() if queue else None):
     global no_update
     proxies, ssl = _api.get_proxies()
+
     gl.scan_files = True
     no_update = False
     if from_ver:
@@ -1023,16 +1036,16 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
 
         model_id = get_models(file_path, gen_hash)
         if model_id == "offline":
-            print("The CivitAI servers did not respond, unable to retrieve Model ID")
+            _print("The CivitAI servers did not respond, unable to retrieve Model ID")
         elif model_id == "Model not found":
             if not_found_print:
-                print(f"model: \"{file_name}\" not found on CivitAI servers.")
+                _print(f"model: \"{file_name}\" not found on CivitAI servers.")
         elif model_id != None:
             all_model_ids.append(f"&ids={model_id}")
             all_ids.append(model_id)
             file_paths.append(file_path)
         elif not model_id:
-            print(f"model ID not found for: \"{file_name}\"")
+            _print(f"model ID not found for: \"{file_name}\"")
         files_done += 1
 
     all_items = []
@@ -1041,7 +1054,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
 
     if not all_model_ids:
         progress(1, desc=f"No model IDs could be retrieved.")
-        print("Could not retrieve any Model IDs, please make sure to turn on the \"One-Time Hash Generation for externally downloaded models.\" option if you haven't already.")
+        _print("Could not retrieve any Model IDs, please make sure to turn on the \"One-Time Hash Generation for externally downloaded models.\" option if you haven't already.")
         no_update = True
         gl.scan_files = False
         time.sleep(2)
@@ -1063,37 +1076,47 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             url_count += 1
         url_done = 0
         api_response = {}
-        for url in url_list:
+
+        for url_index, url in enumerate(url_list):
             while url:
                 try:
                     if progress is not None:
                         progress(url_done / url_count, desc=f"Sending API request... {url_done}/{url_count}")
+
                     response = requests.get(url, timeout=(60,30), proxies=proxies, verify=ssl)
+
                     if response.status_code == 200:
                         api_response_json = response.json()
-
                         all_items.extend(api_response_json['items'])
                         metadata = api_response_json.get('metadata', {})
-                        url = metadata.get('nextPage', None)
+                        next_url = metadata.get('nextPage', None)
+                        url = next_url
                     elif response.status_code == 503:
-                        print(f"Error: Received status code: {response.status_code} with URL: {url}")
-                        print(response.text)
+                        _print(f"Error: Received status code: {response.status_code} with URL: {url}")
+                        _print(response.text)
                         return  (
                             gr.HTML.update(value=_api.api_error_msg("error")),
                             gr.Textbox.update(value=number)
                         )
                     else:
-                        print(f"Error: Received status code {response.status_code} with URL: {url}")
+                        _print(f"Error: Received status code {response.status_code} with URL: {url}")
                         url = None
                     url_done += 1
-                except requests.exceptions.Timeout:
-                    print(f"Request timed out for {url}. Skipping...")
+
+                except requests.exceptions.Timeout as e:
+                    _print(f"Request timed out for {url}. Skipping...")
                     url = None
-                except requests.exceptions.ConnectionError:
-                    print("Failed to connect to the API. The servers might be offline.")
+                except requests.exceptions.ConnectionError as e:
+                    _print("Failed to connect to the API. The servers might be offline.")
+                    url = None
+                except requests.exceptions.ProxyError as e:
+                    _print(f"Proxy error: {e}")
+                    url = None
+                except requests.exceptions.SSLError as e:
+                    _print(f"SSL error: {e}")
                     url = None
                 except Exception as e:
-                    print(f"An unexpected error occurred: {e}")
+                    _print(f"An unexpected error occurred: {e}")
                     url = None
 
         api_response['items'] = all_items
@@ -1117,7 +1140,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         all_model_names = [model[1] for model in outdated_set]
 
         for model_name in all_model_names:
-            print(f'"{model_name}" is currently outdated.')
+            _print(f'"{model_name}" is currently outdated.')
 
         if len(all_model_ids) == 0:
             no_update = True
