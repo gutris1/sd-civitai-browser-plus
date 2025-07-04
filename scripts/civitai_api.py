@@ -1,147 +1,100 @@
-import requests
-import json
-import gradio as gr
-import urllib.parse
-import os
-import re
-import datetime
-import platform
-from PIL import Image
-from io import BytesIO
-from collections import defaultdict
-from datetime import datetime, timezone
+from modules.paths import models_path, extensions_dir, data_path
 from modules.images import read_info_from_image
 from modules.shared import cmd_opts, opts
-from modules.paths import models_path, extensions_dir, data_path
+from datetime import datetime, timezone
+from collections import defaultdict
+from pathlib import Path
 from html import escape
+from io import BytesIO
+from PIL import Image
+import urllib.parse
+import gradio as gr
+import requests
+import platform
+import json
+import os
+import re
+
 from scripts.civitai_global import _print, debug_print
-import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
+import scripts.civitai_global as gl
 
 gl.init()
 
 def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=None):
-    use_LORA = getattr(opts, "use_LORA", False)
-    folder = None
-    if desc:
-        desc = desc.upper()
-    else:
-        desc = "PLACEHOLDER"
-    if custom_folder:
-        main_models = custom_folder
-        main_data = custom_folder
-    else:
-        main_models = models_path
-        main_data = data_path
+    use_LORA = getattr(opts, 'use_LORA', False)
+    desc = (desc or 'PLACEHOLDER').upper()
+    main_models = Path(custom_folder) if custom_folder else Path(models_path)
+    main_data = Path(custom_folder) if custom_folder else Path(data_path)
+    ext = Path(extensions_dir)
 
-    if content_type == "modelFolder":
-        folder = os.path.join(main_models)
+    def cmdopt_path(attr, fallback):
+        return Path(getattr(cmd_opts, attr, fallback)) if getattr(cmd_opts, attr, None) and not custom_folder else fallback
 
-    if content_type == "Checkpoint":
-        if cmd_opts.ckpt_dir and not custom_folder:
-            folder = cmd_opts.ckpt_dir
-        else:
-            folder = os.path.join(main_models,"Stable-diffusion")
+    match content_type:
+        case 'modelFolder':
+            return main_models
 
-    elif content_type == "Hypernetwork":
-        if cmd_opts.hypernetwork_dir and not custom_folder:
-            folder = cmd_opts.hypernetwork_dir
-        else:
-            folder = os.path.join(main_models, "hypernetworks")
+        case 'Checkpoint':
+            return cmdopt_path('ckpt_dir', main_models / 'Stable-diffusion')
 
-    elif content_type == "TextualInversion":
-        if cmd_opts.embeddings_dir and not custom_folder:
-            folder = cmd_opts.embeddings_dir
-        else:
-            folder = os.path.join(main_data, "embeddings")
+        case 'Hypernetwork':
+            return cmdopt_path('hypernetwork_dir', main_models / 'hypernetworks')
 
-    elif content_type == "AestheticGradient":
-        if not custom_folder:
-            folder = os.path.join(extensions_dir, "stable-diffusion-webui-aesthetic-gradients", "aesthetic_embeddings")
-        else:
-            folder = os.path.join(custom_folder, "aesthetic_embeddings")
+        case 'TextualInversion':
+            return cmdopt_path('embeddings_dir', main_data / 'embeddings')
 
-    elif content_type == "LORA":
-        if cmd_opts.lora_dir and not custom_folder:
-            folder = cmd_opts.lora_dir
-        else:
-            folder = folder = os.path.join(main_models, "Lora")
+        case 'AestheticGradient':
+            return (Path(custom_folder) if custom_folder else ext / 'stable-diffusion-webui-aesthetic-gradients') / 'aesthetic_embeddings'
 
-    elif content_type == "LoCon":
-        folder = os.path.join(main_models, "LyCORIS")
-        if use_LORA and not fromCheck:
-            if cmd_opts.lora_dir and not custom_folder:
-                folder = cmd_opts.lora_dir
+        case 'LORA':
+            return cmdopt_path('lora_dir', main_models / 'Lora')
+
+        case 'LoCon':
+            if use_LORA and not fromCheck:
+                return cmdopt_path('lora_dir', main_models / 'Lora')
+            return main_models / 'LyCORIS'
+
+        case 'DoRA':
+            return cmdopt_path('lora_dir', main_models / 'Lora')
+
+        case 'VAE':
+            return cmdopt_path('vae_dir', main_models / 'VAE')
+
+        case 'Controlnet':
+            return cmdopt_path('controlnet_dir', main_models / 'ControlNet')
+
+        case 'Poses':
+            return main_models / 'Poses'
+
+        case 'Upscaler':
+            if 'SWINIR' in desc:
+                return cmdopt_path('swinir_models_path', main_models / 'SwinIR')
+            elif 'REALESRGAN' in desc:
+                return cmdopt_path('realesrgan_models_path', main_models / 'RealESRGAN')
+            elif 'GFPGAN' in desc:
+                return cmdopt_path('gfpgan_models_path', main_models / 'GFPGAN')
+            elif 'BSRGAN' in desc:
+                return cmdopt_path('bsrgan_models_path', main_models / 'BSRGAN')
             else:
-                folder = folder = os.path.join(main_models, "Lora")
+                return cmdopt_path('esrgan_models_path', main_models / 'ESRGAN')
 
-    elif content_type == "DoRA":
-        if cmd_opts.lora_dir and not custom_folder:
-            folder = cmd_opts.lora_dir
-        else:
-            folder = folder = os.path.join(main_models, "Lora")
+        case 'MotionModule':
+            return ext / 'sd-webui-animatediff' / 'model'
 
-    elif content_type == "VAE":
-        if cmd_opts.vae_dir and not custom_folder:
-            folder = cmd_opts.vae_dir
-        else:
-            folder = os.path.join(main_models, "VAE")
+        case 'Workflows':
+            return main_models / 'Workflows'
 
-    elif content_type == "Controlnet":
-        if hasattr(cmd_opts, 'controlnet_dir') and cmd_opts.controlnet_dir and not custom_folder:
-            folder = cmd_opts.controlnet_dir
-        else:
-            folder = os.path.join(main_models, "ControlNet")
+        case 'Other':
+            return main_models / 'adetailer' if 'ADETAILER' in desc else main_models / 'Other'
 
-    elif content_type == "Poses":
-        folder = os.path.join(main_models, "Poses")
+        case 'Wildcards':
+            wild1 = ext / 'UnivAICharGen' / 'wildcards'
+            wild2 = ext / 'sd-dynamic-prompts' / 'wildcards'
+            return wild1 if wild1.exists() else wild2
 
-    elif content_type == "Upscaler":
-        if "SWINIR" in desc:
-            if cmd_opts.swinir_models_path and not custom_folder:
-                folder = cmd_opts.swinir_models_path
-            else:
-                folder = os.path.join(main_models, "SwinIR")
-        elif "REALESRGAN" in desc:
-            if cmd_opts.realesrgan_models_path and not custom_folder:
-                folder = cmd_opts.realesrgan_models_path
-            else:
-                folder = os.path.join(main_models, "RealESRGAN")
-        elif "GFPGAN" in desc:
-            if cmd_opts.gfpgan_models_path and not custom_folder:
-                folder = cmd_opts.gfpgan_models_path
-            else:
-                folder = os.path.join(main_models, "GFPGAN")
-        elif "BSRGAN" in desc:
-            if cmd_opts.bsrgan_models_path and not custom_folder:
-                folder = cmd_opts.bsrgan_models_path
-            else:
-                folder = os.path.join(main_models, "BSRGAN")
-        else:
-            if cmd_opts.esrgan_models_path and not custom_folder:
-                folder = cmd_opts.esrgan_models_path
-            else:
-                folder = os.path.join(main_models, "ESRGAN")
-
-    elif content_type == "MotionModule":
-        folder = os.path.join(extensions_dir, "sd-webui-animatediff", "model")
-
-    elif content_type == "Workflows":
-        folder = os.path.join(main_models, "Workflows")
-
-    elif content_type == "Other":
-        if "ADETAILER" in desc:
-            folder = os.path.join(main_models, "adetailer")
-        else:
-            folder = os.path.join(main_models, "Other")
-
-    elif content_type == "Wildcards":
-        folder = os.path.join(extensions_dir, "UnivAICharGen", "wildcards")
-        if not os.path.exists(folder):
-            folder = os.path.join(extensions_dir, "sd-dynamic-prompts", "wildcards")
-
-    return folder
+    return None
 
 def model_list_html(json_data):
     video_playback = getattr(opts, "video_playback", True)
